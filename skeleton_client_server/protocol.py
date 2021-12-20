@@ -6,6 +6,7 @@ END = 'END' # client wants to end the game (client -> server) HEADER --> {'heade
 
 ANSWER = 'ANSWER' # server sends the answer to the client with information about game (server -> client) HEADER --> {'header': 'protocol.ANSWER', 'sum': 'suma', 'end': end, 'win': win}
 END_GAME = 'END_GAME' # server sends the end of the game to all clients (server -> client) HEADER --> {'header': 'protocol.END_GAME', 'sum': sum}
+WELCOME = 'WELCOME' # server sends the welcome message to the client (server -> client) HEADER --> {'header': 'protocol.WELCOME', 'name': name}
 
 
 class InvalidProtocol(Exception):

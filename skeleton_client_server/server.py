@@ -1,16 +1,13 @@
 import os
+import random
 import signal
 from threading import Thread
 import socket
 import protocol
-import json
+
 
 IP = "127.0.0.1"
 PORT = 6123
-
-card = []
-result = []
-limit = 7.5
 
 
 class ClientThread(Thread):
@@ -18,62 +15,57 @@ class ClientThread(Thread):
         Thread.__init__(self)
         self.client_socket = client_socket
         self.client_address = client_address
-        self.total = 0
         self.stop = False
+        self.valid = False
+        self.answer = ""
+        self.name = ""
+        self.move = ""
+        self.win = False
+        self.winner = ""
 
-    def manage_join(self):
-        print(f"[JOIN] {self.client_address} JOINED")
-        self.manage_answer()
-
-    def random_number(self):
-        import random
-        random_num = random.randint(1, 10)
-        card.append(random_num)
-        return random_num
-
-    def sum(self, num):
-        global result
-        if 1 <= num <= 7:
-            result.append(num)
-        elif 8 <= num <= 10:
-            num = 0.5
-            result.append(num)
-        self.total += num
-
-    def manage_answer(self):
-        end = False
-        win = False
+    def handle_join(self, message):
         try:
-            num = self.random_number()
-            self.sum(num)
-            if self.total >= limit:
-                end = True
-            elif self.total == limit:
-                win = True
-
-            msg_envio = f"[ANSWER] {self.client_address} answered add num: {num} and the sum is: {self.total}"
-            message = {'header': protocol.ANSWER, 'sum': msg_envio, 'end': end, 'win': win}
-            protocol.send_one_message(self.client_socket, message)
-            print(f"[ANSWER] send to {self.client_address} ")
-
+            name = message["name"]
+            self.name = name
+            print(f"[JOIN] received by {self.name}")
+            if len(Game.players) == 0:
+                self.valid = True
+                self.answer = f"Welcome {self.name} join the game"
+                print(f"{self.name} join the game")
+                Game.players.append((self.name, self.client_socket))
+            elif len(Game.players) <= 1:
+                for x, y in Game.players:
+                    if x == self.name:
+                        self.valid = False
+                        self.answer = "Name is in use"
+                        break
+                    else:
+                        self.valid = True
+                        self.answer = f"Welcome {self.name} to the game"
+                        print(f"{self.name} join the game")
+                        Game.players.append((self.name, self.client_socket))
+                        break
+            else:
+                self.valid = False
+                self.answer = "Game is full"
+            self.send_join()
         except KeyError:
             raise protocol.InvalidProtocol
+
+    def send_join(self):
+        message = {'header': protocol.WELCOME, 'valid': self.valid, 'answer': self.answer}
+        protocol.send_one_message(self.client_socket, message)
+
 
     def handle_message(self, message):
-        try:
-            message_header = message['header']
-            if message_header == protocol.JOIN:
-                self.manage_join()
-            elif message_header == protocol.REQUEST:
-                self.manage_answer()
-            elif message_header == protocol.END:
-                msg = {'header': protocol.END, 'sum': self.sum()}
-                protocol.send_one_message(self.client_socket, msg)
-                self.stop = True
-            else:
-                raise protocol.InvalidProtocol
-        except KeyError:
-            raise protocol.InvalidProtocol
+        header = message['header']
+        if header == protocol.JOIN:
+            self.handle_join(message)
+        elif header == protocol.END_GAME:
+            print(f"[END_GAME] received by {self.name}")
+            self.stop = True
+            message = {'header': protocol.END_GAME, 'stop': self.stop, 'answer': "Leave the game"}
+            protocol.send_one_message(self.client_socket, message)
 
     def run(self):
         print(f"Connection received from {self.client_address}")
@@ -85,7 +77,6 @@ class ClientThread(Thread):
                 print(e)
             except protocol.ConnectionClosed:
                 self.stop = True
-
 
 class ServerSocketThread(Thread):
     def __init__(self):
@@ -111,10 +102,11 @@ server_socket_thread.start()
 try:
     stop = False
     while not stop:
-        command = input()
+        command = input('>>')
+        if command == 'c' or 'C':
+            stop = True
 except KeyboardInterrupt:
     print("Server stopped by admin")
+except ConnectionResetError:
+    print("Server stopped by admin")
 os.kill(pid, signal.SIGTERM)
-
-
-
