@@ -7,7 +7,6 @@ import game
 client_threads_running = []
 g = game.Game()
 
-
 def play_round():
     global g
     msg1 = {"protocol": p.GET_MARBLES, "options": [1, g.marbles[g.turn]]}
@@ -145,3 +144,5 @@ while not exit:
             print("Conexion cerrada")
         except ConnectionResetError:
             print("Conexión cerrada")
+
+
