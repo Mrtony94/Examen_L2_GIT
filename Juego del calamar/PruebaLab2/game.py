@@ -1,6 +1,7 @@
-class Game():
+class Game:
     NUM_MARBLES = 5
     NUM_PLAYERS = 2
+
     def __init__(self):
         self.sockets = []
         self.marbles = []
