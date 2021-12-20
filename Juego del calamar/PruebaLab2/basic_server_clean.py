@@ -7,12 +7,15 @@ import game
 client_threads_running = []
 g = game.Game()
 
+
 def play_round():
     global g
     msg1 = {"protocol": p.GET_MARBLES, "options": [1, g.marbles[g.turn]]}
-    msg2 = {"protocol": p.GET_EVEN, "options": ["even", "msg"]}
+    msg2 = {"protocol": p.GET_EVEN, "options": ["even", "odd"]}
     p.send_one_message(g.sockets[g.turn], json.dumps(msg1).encode())
-    p.send_one_message(g.sockets[g.turn], json.dumps(msg2).encode())
+    other = (g.turn + 1) % game.Game.NUM_PLAYERS
+    p.send_one_message(g.sockets[other], json.dumps(msg2).encode())
+
 
 def manage_join(c_s):
     global g
@@ -21,7 +24,7 @@ def manage_join(c_s):
         p.send_one_message(c_s, json.dumps(msg).encode())
     else:
         g.sockets.append(c_s)
-        msg = {"protocol": p.MSG_SERVER, "msg": "You are player" + str(len(g.sockets)- 1)}
+        msg = {"protocol": p.MSG_SERVER, "msg": "You are player" + str(len(g.sockets) - 1)}
         p.send_one_message(c_s, json.dumps(msg).encode())
         if len(g.sockets) == 2:
             play_round()
@@ -29,12 +32,14 @@ def manage_join(c_s):
             msg = {"protocol": p.MSG_SERVER, "msg": "waiting for a second player"}
             p.send_one_message(c_s, json.dumps(msg).encode())
 
+
 def send_end_message(win, lose):
     global g
     msg1 = {"protocol": p.END_GAME, "msg": "You win"}
     msg2 = {"protocol": p.END_GAME, "msg": "You lose"}
     p.send_one_message(g.sockets[lose], json.dumps(msg2).encode())
     p.send_one_message(g.sockets[win], json.dumps(msg1).encode())
+
 
 def manage_command(c_s, option):
     global g
@@ -51,9 +56,9 @@ def manage_command(c_s, option):
         g.marbles[player_win] += marbles
         g.marbles[player_lose] -= marbles
         if g.marbles[0] <= 0:
-            send_end_message(0,1)
+            send_end_message(0, 1)
         elif g.marbles[1] <= 0:
-            send_end_message(1,0)
+            send_end_message(1, 0)
         else:
             g.turn = (g.turn + 1) % game.Game.NUM_PLAYERS
             g.answers = []
@@ -62,6 +67,7 @@ def manage_command(c_s, option):
             for o in g.sockets:
                 p.send_one_message(o, json.dumps(msg).encode())
             play_round()
+
 
 class ClientThread(threading.Thread):
 
@@ -104,8 +110,8 @@ class ServerThread(threading.Thread):
             th.c_s.close()
 
     def run(self):
-        #si queremos que la variable pueda ser modificada desde el hilo tenemos
-        #que utilizar la sentencia global
+        # si queremos que la variable pueda ser modificada desde el hilo tenemos
+        # que utilizar la sentencia global
         global client_threads_running
         while not self.stop:
             try:
@@ -113,8 +119,8 @@ class ServerThread(threading.Thread):
                 print("Conexión desde", c_a)
                 client_thread = ClientThread(c_s)
                 client_thread.start()
-                #Añadimos el hilo a una lista para poder controlarlo desde el 
-                #programa principal
+                # Añadimos el hilo a una lista para poder controlarlo desde el
+                # programa principal
                 client_threads_running.append(client_thread)
 
             except OSError:
