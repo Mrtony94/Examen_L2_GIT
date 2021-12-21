@@ -8,6 +8,7 @@ GAME_FULL = "FULL"
 
 import struct
 
+
 def recvall(sock, count):
     buf = b''
     while count:
@@ -18,10 +19,12 @@ def recvall(sock, count):
         count -= len(newbuf)
     return buf
 
+
 def send_one_message(sock, data):
     length = len(data)
     sock.sendall(struct.pack('!I', length))
     sock.sendall(data)
+
 
 def recv_one_message(sock):
     import struct
