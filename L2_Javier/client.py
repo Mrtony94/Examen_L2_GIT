@@ -1,0 +1,1 @@
+Tony, no me sale con el controlar que pone el. No sé que hacer, estoy por entregar igual que lo teniamos
