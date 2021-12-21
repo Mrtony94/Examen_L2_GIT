@@ -4,11 +4,12 @@ import protocol as p
 import game
 
 client_threads_running = []
-
 g = game.Game()
+
+
 def play_round():
     global g
-    msg1 = {"protocol": p.GET_ANSWER, "options": ["piedra", "papel", "tijeras"]}
+    msg1 = {"protocol": p.TURN, "options": g.COMMANDS}
     p.send_one_message(g.sockets[g.turn], msg1)
     other = (g.turn + 1) % game.Game.NUM_PLAYERS
     p.send_one_message(g.sockets[other], msg1)
@@ -17,23 +18,23 @@ def play_round():
 def manage_join(c_s):
     global g
     if len(g.sockets) == 2:
-        msg = {"protocol": p.GAME_FULL}
+        msg = {"protocol": p.DC, "msg": "Disconected The game is full"}
         p.send_one_message(c_s, msg)
     else:
         g.sockets.append(c_s)
-        msg = {"protocol": p.MSG_SERVER, "msg": "You are player" + str(len(g.sockets) - 1)}
+        msg = {"protocol": p.SERVER, "msg": "You are player " + str(len(g.sockets) - 1)}
         p.send_one_message(c_s, msg)
         if len(g.sockets) == 2:
             play_round()
         else:
-            msg = {"protocol": p.MSG_SERVER, "msg": "waiting for a second player"}
+            msg = {"protocol": p.SERVER, "msg": "waiting for a second player"}
             p.send_one_message(c_s, msg)
 
 
 def send_end_message(win, lose):
     global g
-    msg1 = {"protocol": p.END_GAME, "msg": "You win"}
-    msg2 = {"protocol": p.END_GAME, "msg": "You lose"}
+    msg1 = {"protocol": p.ENDGAME, "msg": f"The player{win} won\n{g.answers[win]}: {g.wins[win]}"}
+    msg2 = {"protocol": p.ENDGAME, "msg": f"The player{lose} lose\n{g.answers[lose]}: {g.wins[win]}"}
     p.send_one_message(g.sockets[lose], msg2)
     p.send_one_message(g.sockets[win], msg1)
 
@@ -42,7 +43,7 @@ def manage_command(c_s, option):
     global g
     who = g.sockets.index(c_s)
     g.answers.insert(who, option)
-    if len(g.answers) == 2 and not (g.num_ronda == 2):
+    if len(g.answers) == 2 and not (g.num_ronda == 3):
         answer1 = g.answers[g.turn]
         answer2 = g.answers[(g.turn + 1) % game.Game.NUM_PLAYERS]
         if answer1 == answer2:
@@ -51,28 +52,43 @@ def manage_command(c_s, option):
             g.answers = []  # [piedra, piedra]
             g.wins[player_win] += 1  # [2,1]
             play_round()
-        elif answer1 == "piedra" and answer2 == "tijeras":
+        elif answer1 == "rock" and answer2 == "scissors":
             player_win = g.turn
-            send_end_message(0, 1)
             g.num_ronda += 1
-        elif answer1 == "tijeras" and answer2 == "piedra":
+            g.answers = []  # [piedra, tijeras]
+            g.wins[player_win] += 1  # [2,1]
+            play_round()
+        elif answer1 == "scissors" and answer2 == "rock":
             player_win = (g.turn + 1) % game.Game.NUM_PLAYERS
-            send_end_message(1, 0)
             g.num_ronda += 1
-            g.wins[player_win] += 1
-        elif answer1 == "papel" and answer2 == "piedra":
+            g.answers = []  # [tijera, piedra]
+            g.wins[player_win] += 1  # [1,2]
+            play_round()
+        elif answer1 == "paper" and answer2 == "rock":
             player_win = g.turn
-            send_end_message(0, 1)
-        elif answer1 == "piedra" and answer2 == "papel":
+            g.num_ronda += 1
+            g.answers = []  # [piedra, piedra]
+            g.wins[player_win] += 1  # [2,1]
+            play_round()
+        elif answer1 == "rock" and answer2 == "paper":
             player_win = (g.turn + 1) % game.Game.NUM_PLAYERS
-            send_end_message(1, 0)
-        elif answer1 == "papel" and answer2 == "tijeras":
+            g.num_ronda += 1
+            g.answers = []  # [tijera, piedra]
+            g.wins[player_win] += 1  # [1,2]
+            play_round()
+        elif answer1 == "paper" and answer2 == "scissors":
             player_win = (g.turn + 1) % game.Game.NUM_PLAYERS
-            send_end_message(1, 0)
-        elif answer1 == "tijeras" and answer2 == "papel":
+            g.num_ronda += 1
+            g.answers = []  # [tijera, piedra]
+            g.wins[player_win] += 1  # [1,2]
+            play_round()
+        elif answer1 == "scissors" and answer2 == "paper":
             player_win = g.turn
-            send_end_message(0, 1)
-    elif len(g.answers) == 2 and g.num_ronda == 2:
+            g.num_ronda += 1
+            g.answers = []  # [piedra, piedra]
+            g.wins[player_win] += 1  # [2,1]
+            play_round()
+    elif len(g.answers) == 2 and g.num_ronda == 3:
         print(g.wins[g.turn])
         print(g.wins[(g.turn + 1) % g.NUM_PLAYERS])
         if g.wins[g.turn] >= g.wins[(g.turn + 1) % g.NUM_PLAYERS]:
@@ -81,20 +97,10 @@ def manage_command(c_s, option):
         else:
             win = (g.turn + 1) % g.NUM_PLAYERS
         lose = (win + 1) % g.NUM_PLAYERS
-        message = {"protocol": p.MSG_SERVER, "msg": win}
+        message = {"protocol": p.SERVER, "msg": win}
         for socket in g.sockets:
             p.send_one_message(socket, message)
         send_end_message(win, lose)
-
-
-def send_end_message(win, lose):
-    global g
-    msg1 = {"protocol": p.END_GAME, "msg": "You win"}
-    msg2 = {"protocol": p.END_GAME, "msg": "You lose"}
-    p.send_one_message(g.sockets[lose], msg2)
-    p.send_one_message(g.sockets[win], msg1)
-
-
 
 
 class ClientThread(Thread):
@@ -108,9 +114,9 @@ class ClientThread(Thread):
         while not self.client_exit:
             try:
                 message = p.recv_one_message(self.c_s)
-                if message["protocol"] == p.MSG_JOIN:
+                if message["protocol"] == p.JOIN:
                     manage_join(self.c_s)
-                elif message["protocol"] == p.SEND_COMMAND:
+                elif message["protocol"] == p.COMMAND:
                     manage_command(self.c_s, message["option"])
             except ConnectionResetError:
                 self.client_exit = True
@@ -127,6 +133,7 @@ class ServerThread(Thread):
         Thread.__init__(self)
         self.stop = False
         self.s_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s_s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.s_s.bind((ip, port))
         self.s_s.listen(100)
 
@@ -156,7 +163,7 @@ class ServerThread(Thread):
         print("Sale del servidor")
 
 
-server_thread = ServerThread("127.0.0.1", 7129)
+server_thread = ServerThread("127.0.0.1", 6123)
 server_thread.start()
 
 exit = False
@@ -172,4 +179,3 @@ while not exit:
             print("Conexion cerrada")
         except ConnectionResetError:
             print("Conexión cerrada")
-
