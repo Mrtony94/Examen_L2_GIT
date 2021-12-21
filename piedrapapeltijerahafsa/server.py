@@ -6,7 +6,6 @@ import game
 client_threads_running = []
 g = game.Game()
 
-
 def play_round():
     global g
     msg1 = {"protocol": p.GET_ANSWER, "options": ["piedra", "papel", "tijeras"]}

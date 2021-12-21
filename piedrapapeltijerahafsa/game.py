@@ -8,4 +8,4 @@ class Game:
         self.turn = 0
         self.action = []
         self.num_ronda = 0
-        self.wins = [0,0]
+        self.wins = [0, 0]
