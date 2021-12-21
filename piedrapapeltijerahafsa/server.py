@@ -6,6 +6,7 @@ import game
 client_threads_running = []
 g = game.Game()
 
+
 def play_round():
     global g
     msg1 = {"protocol": p.GET_ANSWER, "options": ["piedra", "papel", "tijeras"]}
@@ -42,14 +43,14 @@ def manage_command(c_s, option):
     global g
     who = g.sockets.index(c_s)
     g.answers.insert(who, option)
-    if len(g.answers) == 2 and not (g.num_ronda == 3):
+    if len(g.answers) == 2 and not (g.num_ronda == 2):
         answer1 = g.answers[g.turn]
         answer2 = g.answers[(g.turn + 1) % game.Game.NUM_PLAYERS]
         if answer1 == answer2:
             player_win = g.turn
             g.num_ronda += 1
-            g.answers = [] #[piedra, piedra]
-            g.wins[player_win] += 1 #[2,1]
+            g.answers = []  # [piedra, piedra]
+            g.wins[player_win] += 1  # [2,1]
             play_round()
         elif answer1 == "piedra" and answer2 == "tijeras":
             player_win = g.turn
@@ -72,19 +73,20 @@ def manage_command(c_s, option):
         elif answer1 == "tijeras" and answer2 == "papel":
             player_win = g.turn
             send_end_message(0, 1)
-    elif len(g.answers) == 2 and g.num_ronda == 3:
+    elif len(g.answers) == 2 and g.num_ronda == 2:
         print(g.wins[g.turn])
         print(g.wins[(g.turn + 1) % g.NUM_PLAYERS])
-        if g.wins[g.turn] >= g.wins[(g.turn + 1)% g.NUM_PLAYERS]:
+        if g.wins[g.turn] >= g.wins[(g.turn + 1) % g.NUM_PLAYERS]:
             win = g.turn
             print(g.wins[0])
         else:
-            win = (g.turn + 1)% g.NUM_PLAYERS
-        lose = (win + 1)% g.NUM_PLAYERS
+            win = (g.turn + 1) % g.NUM_PLAYERS
+        lose = (win + 1) % g.NUM_PLAYERS
         message = {"protocol": p.MSG_SERVER, "msg": win}
         for socket in g.sockets:
             p.send_one_message(socket, message)
         send_end_message(win, lose)
+
 
 class ClientThread(Thread):
 

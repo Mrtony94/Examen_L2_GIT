@@ -13,7 +13,6 @@ def get_answer(options):
     return o
 
 
-
 def manage_marbles(c_s, options):
     answer = get_answer(options)
     msg = {"protocol": p.SEND_COMMAND, "option": answer}
